@@ -13,10 +13,15 @@ class MousePosition():
             self.pos = x
 
 
-# release the video capture device and close all windows
-def cleanup(capture: cv.VideoCapture) -> None:
-    capture.release()
-    cv.destroyAllWindows()
+# Video Capture Context Manager
+class VideoCaptureCM(cv.VideoCapture):
+
+    def __enter__(self):
+        return self
+
+    # release the camera resource
+    def __exit__(self, type, value, traceback):
+        self.release()
 
 
 # returns the frame but flipped over the given axis
@@ -34,39 +39,40 @@ def get_argmented_img(frame: np.ndarray, w: int, h: int, x: int) -> np.ndarray:
         img[0:h, 0:x] = np.flip(frame[0:h, x:x*2], 1)
 
     return img
-
+    
 
 # main function
 def main() -> None:
-    
-    capture = cv.VideoCapture(0, cv.CAP_DSHOW)
-    if not capture.isOpened():
-        print("Cannot open camera")
-        return
 
-    width, height = int(capture.get(cv.CAP_PROP_FRAME_WIDTH)), int(capture.get(cv.CAP_PROP_FRAME_HEIGHT))
-    # set the initial axis position to half of the width of the screen
-    mouse_position = MousePosition(width // 2)
+    with VideoCaptureCM(0, cv.CAP_DSHOW) as capture:
+        
+        # capture = cv.VideoCapture(0, cv.CAP_DSHOW)
+        if not capture.isOpened():
+            print("Cannot open camera")
+            return
 
-    while True:
-        # continuously grab the image from the capture device
-        ret, frame = capture.read()
-        if not ret:
-            print("Can't receive frame")
-            break
+        width, height = int(capture.get(cv.CAP_PROP_FRAME_WIDTH)), int(capture.get(cv.CAP_PROP_FRAME_HEIGHT))
+        # set the initial axis position to half of the width of the screen
+        mouse_position = MousePosition(width // 2)
 
-        # display the frame onto the window
-        cv.imshow('frame', get_argmented_img(frame, width, height, mouse_position.pos))
+        while True:
+            # continuously grab the image from the capture device
+            ret, frame = capture.read()
+            if not ret:
+                print("Can't receive frame")
+                break
 
-        # check for any mouse click events
-        cv.setMouseCallback('frame', mouse_position.get_mouse_position)
+            # display the frame onto the window
+            cv.imshow('frame', get_argmented_img(frame, width, height, mouse_position.pos))
 
-        # wait for either the 'q' check to be pressed or the X window button to be clicked to end the program
-        if cv.waitKey(1) == ord('q') or cv.getWindowProperty('frame', cv.WND_PROP_AUTOSIZE) < 1:
-            break
+            # check for any mouse click events
+            cv.setMouseCallback('frame', mouse_position.get_mouse_position)
 
-    # close all windows and free the capture device
-    cleanup(capture)
+            # wait for either the 'q' check to be pressed or the X window button to be clicked to end the program
+            if cv.waitKey(1) == ord('q') or cv.getWindowProperty('frame', cv.WND_PROP_AUTOSIZE) < 1:
+                break
+
+    cv.destroyAllWindows()
 
 
 if __name__ == '__main__':

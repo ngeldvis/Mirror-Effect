@@ -32,7 +32,6 @@ def get_augmented_img(frame: np.ndarray, w: int, h: int, x: int) -> np.ndarray:
     return img
     
 
-# main function
 def main() -> None:
 
     with VideoCaptureCM(0, cv.CAP_DSHOW) as capture:
